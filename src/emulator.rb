@@ -30,7 +30,7 @@ class Emulator
 	def exec
 		while @eip < MEMORY_SIZE
 			code = get_u_sign_8(0)
-			raise EmulatorRuntimeError,"Unknown Operator code : #{code.to_h(16)}" if !@func_table.key?(code)
+			raise EmulatorRuntimeError,"Unknown Operator code : #{code.to_s(16)}" if !@func_table.key?(code)
 
 			@func_table[code].call
 		 	if @eip == 0x00
@@ -56,6 +56,7 @@ class Emulator
 		8.times{ |e|
 			table[0xB8 + e] = method(:mov_r_32)
 		}
+		table[0xE9] = method(:jmp_32)
 		table[0xEB] = method(:jmp_8)
 		table
 	end
@@ -65,10 +66,18 @@ class Emulator
 		@registers[REGISTERS_NAME[reg]] = val
 		@eip += 5
 	end
+
+
 	# short jump
 	def jmp_8
 		diff = get_sign_8(1)
 		@eip += ( diff + 2 )
+	end
+
+	#near jump
+	def jmp_32
+		diff = get_sign_32(1)
+		@eip += ( diff + 5 )
 	end
 
 	# util
@@ -77,13 +86,17 @@ class Emulator
 	end
 
 	def get_sign_8 index
-		((e = @memory[@eip+index]) >> 7 & 1) == 1 ? e | -0x100 : e
+		((e = get_u_sign_8(index)) >> 7 & 1) == 1 ? e | -(1 << 8) : e
 	end
 
 	def get_u_sign_32 index
 		ret = 0
 		4.times{|e| ret |= get_u_sign_8(index + e) << (e * 8) }
 		ret
+	end
+
+	def get_sign_32 index
+		((e = get_u_sign_32(index)) >> 31 & 1) == 1 ? e | -(1 << 32) : e
 	end
 
 
