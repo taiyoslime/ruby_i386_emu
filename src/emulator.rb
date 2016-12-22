@@ -15,11 +15,11 @@ class Emulator
 		@state[:eflags] = 0
 	end
 
-	def load data,size
+	def load data, size
 		size = data.length if size > data.length
 		size.times{|e|
 			# String#unpack returns Array
-			@state[:memory][e], = data[e].unpack("C")
+			@state[:memory][e + @state[:eip]], = data[e].unpack("C")
 		}
 	end
 
@@ -28,8 +28,8 @@ class Emulator
 
 		while @state[:eip] < MEMORY_SIZE
 			code = get_u_sign_8(0)
-			puts "Code: #{code}" if debug
-			raise EmulatorRuntimeError,"Unknown Operator code : #{code.to_s(16)}" if !@func_table.key?(code)
+			puts "Code: #{p16(code)}" if debug
+			raise EmulatorRuntimeError,"Unknown Operator code : #{p16(code)}" if !@func_table.key?(code)
 
 			@func_table[code].call
 			dump_registers if debug
@@ -46,9 +46,9 @@ class Emulator
 
 
 	def dump_registers
-		@state[:registers].each { |k,v| puts "#{k} : 0x#{v.to_s(16)}" }
-		puts "eip : 0x#{@state[:eip].to_s(16)}"
-#		puts "eflags : 0x#{@state[:eflags] .to_s(16)}"
+		@state[:registers].each { |k,v| puts "#{k} : #{p16(v)}" }
+		puts "eip : #{p16(@state[:eip])}"
+		puts "eflags : #{p16(@state[:eflags])}"
 	end
 
 	def dump_memory from=0,to=@state[:memory].length
@@ -109,5 +109,8 @@ class Emulator
 		((e = get_u_sign_32(index)) >> 31 & 1) == 1 ? e | -(1 << 32) : e
 	end
 
+	def p16 i
+		"0x#{'0'*(8 - (d = i.to_s(16)).size)}#{d}"
+	end
 
 end
