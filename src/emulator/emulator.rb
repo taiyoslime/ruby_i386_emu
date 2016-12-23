@@ -67,6 +67,32 @@ class Emulator
 		table
 	end
 
+	def parse_modrm
+		modrm = {}
+
+		code = get_u_sign_8(0)
+		modrm[:mod] = (code & 0xC0) >> 6
+		modrm[:opecode] = (code & 0x38) >> 3
+		modrm[:rm] = code & 0x07
+
+		@state[:eip] += 1
+
+		if modrm[:mod] != 3 && modrm[:rm] == 4
+			modrm[:sib] = get_u_sign_8(0)
+			@state[:eip] += 1
+		end
+
+		if (modrm[:mod] == 0 && mod[:rm] == 5) || modrn[:mod] == 2
+			modrm[:disp32] = get_sign_32(0)
+			@state[:eip] += 4
+		elsif modrm[:mod] == 1
+			modrm[:disp8] = get_sign_8(0)
+			@state[:eip] += 1
+		end
+
+		modrm
+	end
+
 	# Instructions
 	def mov_r_32
 		reg = get_u_sign_8(0) - 0xB8
