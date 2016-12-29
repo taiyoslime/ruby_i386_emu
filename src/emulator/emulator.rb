@@ -61,7 +61,7 @@ class Emulator
 	# function poninter table in C++
 	def create_func_table
 		table = {}
-		8.times { |e| table[0xB8 + e] = method(:mov_r_32) }
+		8.times { |e| table[0xB8 + e] = method(:mov_r32_imm32) }
 		table[0xE9] = method(:jmp_32)
 		table[0xEB] = method(:jmp_8)
 		table
@@ -94,11 +94,19 @@ class Emulator
 	end
 
 	# Instructions
-	def mov_r_32
+	def mov_r32_imm32
 		reg = get_u_sign_8(0) - 0xB8
 		val = get_u_sign_32(1)
 		@state[:registers][REGISTER_TABLE[reg]] = val
 		@state[:eip] += 5
+	end
+
+	def mov_rm32_imm32
+		@state[:eip] += 1
+		modrm = parse_modrm
+		val = get_sign_32(0)
+		@state[:eip] += 4
+		set_rm32(modrm, val)
 	end
 
 	# short jump
@@ -114,6 +122,24 @@ class Emulator
 	end
 
 	# util
+
+	def set_rm32 modrm, val
+		if modrm[:mod] == 3
+			set_reg32(modrm[:rm], val)
+		else
+			addr = calc_mem_addr(modrm)
+			set_mem32(addr, val)
+		end
+	end
+
+	def set_mem8 addr, val
+		@state[:memory][addr] = val & 0xFF
+	end
+
+	def set_mem32 addr, val
+		4.times{|e| set_mem8 ( addr + i, val >> ( i * 8 )) }
+	end
+
 
 	# 8bit
 	def get_u_sign_8 index
